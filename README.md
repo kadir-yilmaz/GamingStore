@@ -1,4 +1,4 @@
-# GamingStore E-Commerce
+# GamingStore
 
 ASP.NET Core MVC kullanılarak geliştirilmiş, N-Tier (Katmanlı) mimari yapısı ve modern e-ticaret özelliklerini içeren kapsamlı bir oyun ve donanım satış platformudur.
 
@@ -6,12 +6,11 @@ ASP.NET Core MVC kullanılarak geliştirilmiş, N-Tier (Katmanlı) mimari yapıs
 
 Bu proje kapsamında aşağıdaki mimari yapılar ve teknik konular ele alınmıştır:
 
-- **N-Tier Architecture**: Core, Data, Business ve WebUI katmanları ile ayrıştırılmış, sürdürülebilir mimari.
+- **N-Tier Architecture**: EL, DAL, BLL, PL ve WebUI katmanları ile ayrıştırılmış, sürdürülebilir mimari.
 - **Repository Pattern**: Veri erişim katmanında soyutlama ve bağımlılık yönetimi.
 - **Identity Framework**: Role-based (Rol tabanlı) kullanıcı yetkilendirme ve kimlik doğrulama sistemi.
 - **Payment Integration**: Iyzipay API entegrasyonu ile güvenli ödeme süreçleri.
 - **Mail Service**: MailKit entegrasyonu ile SMTP üzerinden otomatik bildirim ve doğrulama e-postaları.
-- **Global Error Handling**: Uygulama genelinde merkezi hata yakalama ve yönetimi.
 - **Session & Cart Management**: Kullanıcı bazlı sepet veri yönetimi.
 - **Dependency Injection**: Esnek ve test edilebilir bir yapı için servislerin merkezi yönetimi.
 - **DTO & AutoMapper**: Veri transfer nesneleri ile katmanlar arası güvenli veri taşıma.
