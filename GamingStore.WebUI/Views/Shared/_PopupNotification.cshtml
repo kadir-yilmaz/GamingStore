@@ -1,0 +1,66 @@
+@if (TempData["OrderSuccess"] != null || TempData["success"] != null || TempData["Success"] != null || TempData["danger"] != null || TempData["Error"] != null || TempData["info"] != null)
+{
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            @if (TempData["OrderSuccess"] != null)
+            {
+                <text>
+                Swal.fire({
+                    title: 'Tebrikler!',
+                    text: @Json.Serialize(TempData["OrderSuccess"]),
+                    icon: 'success',
+                    confirmButtonText: 'Tamam',
+                    confirmButtonColor: '#ff6b00',
+                    background: '#fff',
+                    borderRadius: '15px'
+                });
+                </text>
+            }
+            else if (TempData["success"] != null || TempData["Success"] != null)
+            {
+                var msg = TempData["success"] ?? TempData["Success"];
+                <text>
+                Swal.fire({
+                    title: 'Başarılı!',
+                    text: @Json.Serialize(msg),
+                    icon: 'success',
+                    confirmButtonText: 'Tamam',
+                    confirmButtonColor: '#28a745',
+                    background: '#fff',
+                    borderRadius: '15px'
+                });
+                </text>
+            }
+            else if (TempData["danger"] != null || TempData["Error"] != null)
+            {
+                var msg = TempData["danger"] ?? TempData["Error"];
+                <text>
+                Swal.fire({
+                    title: 'Hata!',
+                    text: @Json.Serialize(msg),
+                    icon: 'error',
+                    confirmButtonText: 'Tamam',
+                    confirmButtonColor: '#dc3545',
+                    background: '#fff',
+                    borderRadius: '15px'
+                });
+                </text>
+            }
+            else if (TempData["info"] != null)
+            {
+                <text>
+                Swal.fire({
+                    title: 'Bilgi',
+                    text: @Json.Serialize(TempData["info"]),
+                    icon: 'info',
+                    confirmButtonText: 'Tamam',
+                    confirmButtonColor: '#17a2b8',
+                    background: '#fff',
+                    borderRadius: '15px'
+                });
+                </text>
+            }
+        });
+    </script>
+}

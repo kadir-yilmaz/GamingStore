@@ -1,0 +1,100 @@
+<script>
+    // Address Selection (Province, District, Neighborhood) - Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeAddressSelection();
+    });
+
+    function initializeAddressSelection() {
+        const provincesData = window.addressProvinces || [];
+        
+        const provinceSelect = document.getElementById('provinceSelect');
+        const districtSelect = document.getElementById('districtSelect');
+        const neighborhoodSelect = document.getElementById('neighborhoodSelect');
+        const districtContainer = document.getElementById('districtContainer');
+        const neighborhoodContainer = document.getElementById('neighborhoodContainer');
+
+        if (!provinceSelect || !districtSelect || !neighborhoodSelect) return;
+
+        provinceSelect.addEventListener('change', function () {
+            updateDistricts(this.value);
+            updateNeighborhoods('');
+        });
+
+        districtSelect.addEventListener('change', function () {
+            updateNeighborhoods(this.value);
+        });
+
+        function updateDistricts(selectedProvinceValue) {
+            districtSelect.innerHTML = '<option value="">İlçe seçin</option>';
+            neighborhoodSelect.innerHTML = '<option value="">Mahalle seçin</option>';
+            neighborhoodContainer.style.display = 'none';
+            
+            if (!selectedProvinceValue) {
+                districtContainer.style.display = 'none';
+                return;
+            }
+
+            const province = provincesData.find(p => p.name === selectedProvinceValue);
+            if (province && province.districts) {
+                province.districts.forEach(district => {
+                    const option = document.createElement('option');
+                    option.value = district.name;
+                    option.textContent = district.name;
+                    districtSelect.appendChild(option);
+                });
+                districtContainer.style.display = 'block';
+            } else {
+                districtContainer.style.display = 'none';
+            }
+        }
+
+        function updateNeighborhoods(selectedDistrictValue) {
+            neighborhoodSelect.innerHTML = '<option value="">Mahalle seçin</option>';
+
+            if (!selectedDistrictValue) {
+                neighborhoodContainer.style.display = 'none';
+                return;
+            }
+
+            const selectedProvince = provincesData.find(p => p.name === provinceSelect.value);
+            if (selectedProvince) {
+                const selectedDistrict = selectedProvince.districts.find(d => d.name === selectedDistrictValue);
+                if (selectedDistrict && selectedDistrict.neighborhoods) {
+                    selectedDistrict.neighborhoods.forEach(neighborhood => {
+                        const option = document.createElement('option');
+                        option.value = neighborhood;
+                        option.textContent = neighborhood;
+                        neighborhoodSelect.appendChild(option);
+                    });
+                    neighborhoodContainer.style.display = 'block';
+                } else {
+                    neighborhoodContainer.style.display = 'none';
+                }
+            } else {
+                neighborhoodContainer.style.display = 'none';
+            }
+        }
+
+        // Sayfa yüklendiğinde mevcut değerleri yükle
+        const savedProvince = provinceSelect.value;
+        const savedDistrict = districtSelect.getAttribute('data-initial-value') || '';
+        const savedNeighborhood = neighborhoodSelect.getAttribute('data-initial-value') || '';
+
+        if (savedProvince) {
+            updateDistricts(savedProvince);
+            
+            setTimeout(() => {
+                if (savedDistrict) {
+                    districtSelect.value = savedDistrict;
+                    updateNeighborhoods(savedDistrict);
+                    
+                    setTimeout(() => {
+                        if (savedNeighborhood) {
+                            neighborhoodSelect.value = savedNeighborhood;
+                        }
+                    }, 50);
+                }
+            }, 50);
+        }
+    }
+</script>

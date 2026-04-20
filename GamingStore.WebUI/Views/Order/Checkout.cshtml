@@ -1,0 +1,411 @@
+@using GamingStore.WebUI.ViewModels
+@model CheckoutViewModel
+@inject Cart Cart
+
+@{
+    ViewData["Title"] = "Ödeme";
+    Layout = "_CheckoutLayout";
+    int currentYear = DateTime.Now.Year;
+}
+
+<form asp-action="Checkout" method="post" id="checkoutForm">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+    <input type="hidden" name="UseNewAddress" id="useNewAddressInput" value="@(Model.UseNewAddress ? "true" : "false")" />
+    
+    <div class="row g-4 mb-5">
+        <!-- SOL TARAF: Adres ve Ödeme -->
+        <div class="col-lg-8">
+            
+            <!-- 1. TESLİMAT ADRESİ -->
+            <div class="card border-0 shadow-sm mb-4 rounded-4 overflow-hidden">
+                <div class="card-header bg-white border-0 py-3 d-flex align-items-center">
+                    <div class="bg-warning bg-opacity-10 p-2 rounded-3 me-3">
+                        <i class="fa-solid fa-location-dot text-warning"></i>
+                    </div>
+                    <h5 class="mb-0 fw-bold">Teslimat Adresim</h5>
+                </div>
+                <div class="card-body p-4 pt-0">
+                    
+                    <!-- Kayıtlı Adres Bölümü -->
+                    <div id="savedAddressSection" class="@(Model.UseNewAddress ? "d-none" : "")">
+                        @if (Model.DeliveryAddresses.Any())
+                        {
+                            <div class="mb-4">
+                                <label class="form-label small text-secondary fw-semibold">Kayıtlı Adresleriniz</label>
+                                <select class="form-select premium-input" id="addressDropdown" asp-for="SelectedDeliveryAddressId">
+                                    @foreach (var addr in Model.DeliveryAddresses)
+                                    {
+                                        <option value="@addr.Id" data-detail="@addr.AddressDetail" selected="@(addr.Id == Model.SelectedDeliveryAddressId)">
+                                            @addr.Title (@addr.Province / @addr.District)
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div id="selectedAddressDetail" class="p-3 bg-light rounded-4 mb-3 border border-dashed text-secondary small">
+                                @{
+                                    var firstAddr = Model.DeliveryAddresses.FirstOrDefault(a => a.Id == Model.SelectedDeliveryAddressId) 
+                                                  ?? Model.DeliveryAddresses.FirstOrDefault();
+                                    if (firstAddr != null)
+                                    {
+                                        <div>@firstAddr.AddressDetail</div>
+                                    }
+                                }
+                            </div>
+
+                            <button type="button" class="btn btn-link text-warning p-0 text-decoration-none fw-bold small" id="showNewAddressBtn">
+                                <i class="fa-solid fa-plus me-1"></i> Yeni Adres Ekle
+                            </button>
+                        }
+                        else
+                        {
+                            <div class="text-center py-5 bg-light rounded-4 border border-dashed">
+                                <i class="fa-solid fa-map-location-dot fa-3x text-muted mb-3 opacity-25"></i>
+                                <p class="text-muted mb-3">Henüz kayıtlı bir adresiniz bulunmuyor.</p>
+                                <button type="button" class="premium-button-primary px-4 py-2" id="showNewAddressBtn">
+                                    <i class="fa-solid fa-plus me-1"></i> Yeni Adres Oluştur
+                                </button>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Yeni Adres Formu -->
+                    <div id="newAddressSection" class="@(Model.UseNewAddress ? "" : "d-none")">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h6 class="mb-0 fw-bold text-secondary">Yeni Adres Detayları</h6>
+                            @if (Model.DeliveryAddresses.Any())
+                            {
+                                <button type="button" class="btn btn-link text-muted p-0 text-decoration-none small" id="showSavedAddressBtn">
+                                    <i class="fa-solid fa-arrow-left me-1"></i> Kayıtlı Adreslere Dön
+                                </button>
+                            }
+                        </div>
+
+                        <partial name="_AddressForm"
+                                 model="Model"
+                                 view-data='new ViewDataDictionary(ViewData)
+                                 {
+                                     ["AddressFormShowSaveSwitch"] = true,
+                                     ["AddressFormShowClosedDays"] = false
+                                 }' />
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. FATURA SEÇENEĞİ -->
+            <div class="card border-0 shadow-sm mb-4 rounded-4 overflow-hidden">
+                <div class="card-body p-4 py-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" asp-for="UseSameAddressForInvoice" id="useSameAddress" checked>
+                        <label class="form-check-label fw-bold" for="useSameAddress">
+                            Fatura adresim teslimat adresiyle aynı olsun
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Farklı Fatura Adresi (Gizli) -->
+            <div id="invoiceAddressSection" class="card border-0 shadow-sm mb-4 rounded-4 overflow-hidden d-none">
+                <div class="card-header bg-white border-0 py-3">
+                    <h5 class="mb-0 fw-bold"><i class="fa-solid fa-file-invoice me-2 text-warning"></i>Fatura Adresi</h5>
+                </div>
+                <div class="card-body p-4 pt-0 text-center py-4">
+                    @if (Model.InvoiceAddresses.Any())
+                    {
+                        <select class="form-select premium-input mb-3" name="SelectedInvoiceAddressId" id="invoiceAddressDropdown">
+                            @foreach (var address in Model.InvoiceAddresses)
+                            {
+                                <option value="@address.Id" selected="@(Model.SelectedInvoiceAddressId == address.Id)">
+                                    @address.Title (@address.Province / @address.District)
+                                </option>
+                            }
+                        </select>
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-0">Kayıtlı fatura adresiniz bulunamadı. Lütfen yeni bir fatura adresi ekleyin.</p>
+                        <a asp-controller="Address" asp-action="Create" asp-route-type="Invoice" class="btn btn-link text-warning text-decoration-none small fw-bold mt-2">+ Yeni Fatura Adresi Ekle</a>
+                    }
+                </div>
+            </div>
+
+            <!-- 3. ÖDEME BİLGİLERİ -->
+            <div class="card border-0 shadow-sm mb-5 rounded-4 overflow-hidden">
+                <div class="card-header bg-white border-0 py-3 d-flex align-items-center">
+                    <div class="bg-warning bg-opacity-10 p-2 rounded-3 me-3">
+                        <i class="fa-solid fa-credit-card text-warning"></i>
+                    </div>
+                    <h5 class="mb-0 fw-bold">Ödeme Bilgileri</h5>
+                </div>
+                <div class="card-body p-4 pt-0">
+                    <div class="row g-4 align-items-center">
+                        <div class="col-md-7">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label small text-secondary">Kart Üzerindeki İsim</label>
+                                    <input class="form-control premium-input" asp-for="CardName" id="cardNameInput" placeholder="AD SOYAD" />
+                                    <span asp-validation-for="CardName" class="text-danger small"></span>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small text-secondary">Kart Numarası</label>
+                                    <div class="input-icon-wrapper">
+                                        <i class="fa-solid fa-credit-card"></i>
+                                        <input class="form-control premium-input" asp-for="CardNumber" id="cardNumberInput" placeholder="0000 0000 0000 0000" maxlength="19" />
+                                    </div>
+                                    <span asp-validation-for="CardNumber" class="text-danger small"></span>
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label small text-secondary">Ay</label>
+                                    <select class="form-select premium-input text-center" asp-for="ExpireMonth" id="cardMonthInput">
+                                        <option value="">Ay</option>
+                                        @for (int i = 1; i <= 12; i++)
+                                        {
+                                            <option value="@i.ToString("00")">@i.ToString("00")</option>
+                                        }
+                                    </select>
+                                    <span asp-validation-for="ExpireMonth" class="text-danger small"></span>
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label small text-secondary">Yıl</label>
+                                    <select class="form-select premium-input text-center" asp-for="ExpireYear" id="cardYearInput">
+                                        <option value="">Yıl</option>
+                                        @for (int i = currentYear; i < currentYear + 15; i++)
+                                        {
+                                            <option value="@i">@i.ToString().Substring(2)</option>
+                                        }
+                                    </select>
+                                    <span asp-validation-for="ExpireYear" class="text-danger small"></span>
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label small text-secondary">CVC</label>
+                                    <input class="form-control premium-input text-center" asp-for="Cvc" placeholder="000" maxlength="3" />
+                                    <span asp-validation-for="Cvc" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-5 d-none d-md-block">
+                            <!-- Premium Kart Visual -->
+                            <div class="card bg-dark text-white rounded-4 border-0 shadow-sm overflow-hidden" style="background: linear-gradient(135deg, #484848 0%, #1a1a1a 100%); aspect-ratio: 1.58 / 1;">
+                                <div class="card-body p-4 d-flex flex-column justify-content-between h-100">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <img src="https://img.icons8.com/color/48/000000/chip-card.png" width="40" style="filter: grayscale(1) brightness(2);" />
+                                        <i class="fab fa-cc-mastercard fa-2x opacity-50"></i>
+                                    </div>
+                                    <div class="py-2">
+                                        <div class="h5 mb-0 tracking-widest text-shadow-sm font-monospace" id="cardVisualNumber">0000 0000 0000 0000</div>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-end">
+                                        <div>
+                                            <div class="text-uppercase small opacity-50" style="font-size: 8px;">Kart Sahibi</div>
+                                            <div class="fw-bold small text-nowrap overflow-hidden" id="cardVisualName" style="max-width: 140px;">AD SOYAD</div>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="text-uppercase small opacity-50" style="font-size: 8px;">Son K.T.</div>
+                                            <div class="fw-bold small" id="cardVisualExpiry">AA/YY</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SAĞ TARAF: Özet (Sticky) -->
+        <div class="col-lg-4">
+            <div class="sticky-top" style="top: 20px; z-index: 1000;">
+                
+                <!-- Sepet İçeriği Özeti -->
+                <div class="card border-0 shadow rounded-4 overflow-hidden mb-3">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="text-secondary fw-bold mb-0 small tracking-tight text-uppercase">Sipariş Edilen Ürünler</h6>
+                        </div>
+                        
+                        <div class="order-items-scrollable pe-2" style="max-height: 250px; overflow-y: auto;">
+                            @foreach (var line in Cart.Lines)
+                            {
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="flex-shrink-0 bg-light rounded-3 p-1 position-relative">
+                                        <img src="@line.Product.ImageURL" alt="@line.Product.Name" style="width: 50px; height: 50px; object-fit: contain;" />
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <div class="small fw-bold text-dark" style="max-width: 150px;">@line.Product.Name</div>
+                                        <div class="small text-muted">@line.Quantity x @line.Product.Price.ToString("C2")</div>
+                                    </div>
+                                    <div class="small fw-bold">@((line.Product.Price * line.Quantity).ToString("C2"))</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ödeme Özeti -->
+                <div class="card border-0 shadow rounded-4 overflow-hidden mb-3">
+                    <div class="card-body p-4">
+                        <h6 class="text-secondary fw-bold mb-3 small tracking-tight text-uppercase">Sipariş Özeti</h6>
+                        
+                        <div class="d-flex align-items-center mb-3">
+                            <span class="h1 fw-bold mb-0 text-orange">@Cart.ComputeTotalValue().ToString("C2")</span>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-check p-3 bg-warning bg-opacity-10 rounded-4 border border-warning border-opacity-25 ms-0">
+                                <input type="checkbox" asp-for="Order.GiftWrap" class="form-check-input ms-0 me-3" id="giftWrap">
+                                <label class="form-check-label fw-bold text-warning-emphasis small" for="giftWrap">
+                                    <i class="fa-solid fa-gift me-1"></i> Hediye paketi yapılsın mı?
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-success border-0 small py-2 mb-4 rounded-3 d-flex align-items-center">
+                            <i class="fa-solid fa-circle-check me-2"></i>
+                            <span>Kargo bu siparişte <strong>Bedava</strong>!</span>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-check p-0 ms-0">
+                                <input class="form-check-input d-none" type="checkbox" id="contractCheck" required>
+                                <label class="small text-secondary cursor-pointer d-flex" for="contractCheck">
+                                    <div class="custom-checkbox-visual me-2 mt-1"></div>
+                                    <div>
+                                        <a href="#" class="text-decoration-none text-orange fw-bold">Ön Bilgilendirme Formu</a>'nu ve 
+                                        <a href="#" class="text-decoration-none text-orange fw-bold">Mesafeli Satış Sözleşmesi</a>'ni okudum, onaylıyorum.
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="premium-button-primary w-100 py-3 shadow-lg" style="font-size: 1.1rem; border-radius: 12px;">
+                            Ödemeyi Tamamla
+                        </button>
+                        
+                        <div class="mt-4 border-top pt-4">
+                            <div class="d-flex justify-content-between mb-2 small text-secondary">
+                                <span>Ürünler Toplamı</span>
+                                <span>@Cart.ComputeTotalValue().ToString("C2")</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2 small text-secondary">
+                                <span>Kargo Toplamı</span>
+                                <span class="text-success fw-bold">Bedava</span>
+                            </div>
+                            <div class="d-flex justify-content-between mt-3 h5 fw-bold text-dark border-top pt-3">
+                                <span>Toplam</span>
+                                <span>@Cart.ComputeTotalValue().ToString("C2")</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <p class="text-muted small mb-0"><i class="fa-solid fa-lock me-1"></i> %100 Güvenli Ödeme Sistemi</p>
+                    <div class="d-flex justify-content-center gap-2 mt-2 opacity-50">
+                        <i class="fa-brands fa-cc-visa fa-2x"></i>
+                        <i class="fa-brands fa-cc-mastercard fa-2x"></i>
+                        <i class="fa-brands fa-cc-amex fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        window.addressProvinces = @Html.Raw(Model.Provinces != null ? Json.Serialize(Model.Provinces) : "[]");
+
+        // UI Elements
+        const useNewAddressInput = document.getElementById('useNewAddressInput');
+        const savedAddressSection = document.getElementById('savedAddressSection');
+        const newAddressSection = document.getElementById('newAddressSection');
+        const showNewAddressBtn = document.getElementById('showNewAddressBtn');
+        const showSavedAddressBtn = document.getElementById('showSavedAddressBtn');
+        const addressDropdown = document.getElementById('addressDropdown');
+        const selectedAddressDetail = document.getElementById('selectedAddressDetail');
+        
+        const invoiceAddressSection = document.getElementById('invoiceAddressSection');
+        const useSameAddressCheckbox = document.getElementById('useSameAddress');
+
+        // Card Visual Elements
+        const cardNameInput = document.getElementById('cardNameInput');
+        const cardNumberInput = document.getElementById('cardNumberInput');
+        const cardMonthInput = document.getElementById('cardMonthInput');
+        const cardYearInput = document.getElementById('cardYearInput');
+        
+        const visualName = document.getElementById('cardVisualName');
+        const visualNumber = document.getElementById('cardVisualNumber');
+        const visualExpiry = document.getElementById('cardVisualExpiry');
+
+        // Address Dropdown Change
+        if (addressDropdown) {
+            addressDropdown.addEventListener('change', function () {
+                const selectedOption = this.options[this.selectedIndex];
+                if (selectedAddressDetail && selectedOption) {
+                    const detail = selectedOption.getAttribute('data-detail') || '';
+                    selectedAddressDetail.innerHTML = '<div>' + detail + '</div>';
+                }
+            });
+        }
+
+        // Toggle Saved/New Address
+        if (showNewAddressBtn) {
+            showNewAddressBtn.addEventListener('click', function () {
+                savedAddressSection.classList.add('d-none');
+                newAddressSection.classList.remove('d-none');
+                useNewAddressInput.value = 'true';
+            });
+        }
+        if (showSavedAddressBtn) {
+            showSavedAddressBtn.addEventListener('click', function () {
+                savedAddressSection.classList.remove('d-none');
+                newAddressSection.classList.add('d-none');
+                useNewAddressInput.value = 'false';
+            });
+        }
+
+        // Invoice Toggle
+        if (useSameAddressCheckbox) {
+            useSameAddressCheckbox.addEventListener('change', function () {
+                if (this.checked) invoiceAddressSection.classList.add('d-none');
+                else invoiceAddressSection.classList.remove('d-none');
+            });
+        }
+
+        // Card Input Formatting & Visual Sync
+        if (cardNumberInput) {
+            cardNumberInput.addEventListener('input', function (e) {
+                let value = e.target.value.replace(/\D/g, '');
+                value = value.replace(/(\d{4})(?=\d)/g, '$1 ');
+                e.target.value = value;
+                visualNumber.textContent = value || "0000 0000 0000 0000";
+            });
+        }
+
+        if (cardNameInput) {
+            cardNameInput.addEventListener('input', function (e) {
+                visualName.textContent = e.target.value.toUpperCase() || "AD SOYAD";
+            });
+        }
+
+        const updateExpiry = () => {
+            if (!cardMonthInput || !cardYearInput) return;
+            const m = cardMonthInput.value || "AA";
+            const y = (cardYearInput.value ? cardYearInput.value.slice(-2) : "YY");
+            visualExpiry.textContent = m + "/" + y;
+        };
+        if (cardMonthInput) cardMonthInput.addEventListener('change', updateExpiry);
+        if (cardYearInput) cardYearInput.addEventListener('change', updateExpiry);
+
+        // Pre-submit Cleanup
+        const form = document.getElementById('checkoutForm');
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                if (cardNumberInput) cardNumberInput.value = cardNumberInput.value.replace(/\s/g, '');
+            });
+        }
+    </script>
+    <partial name="_CheckoutScripts" />
+}

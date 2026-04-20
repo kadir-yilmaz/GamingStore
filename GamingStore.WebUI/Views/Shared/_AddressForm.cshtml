@@ -1,0 +1,347 @@
+@model GamingStore.WebUI.ViewModels.Address.IAddressViewModel
+
+@{
+    // isCompact: Shows simpler fields (used in Checkout)
+    // isStandalone: Shows the outer Card and Form tag (used in Create/Edit pages)
+    var isCompact = ViewData["AddressFormCompact"] is true;
+    var isStandalone = ViewData["AddressFormStandalone"] is true;
+    var showSaveSwitch = ViewData["AddressFormShowSaveSwitch"] is true;
+    var showClosedDays = ViewData["AddressFormShowClosedDays"] is bool value ? value : !isCompact;
+
+    var weekDays = new[] { "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar" };
+    var defaultClosed = new[] { "Cumartesi", "Pazar" };
+    var selectedDays = string.IsNullOrWhiteSpace(Model.Address.ClosedDays)
+        ? Array.Empty<string>()
+        : Model.Address.ClosedDays.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    // Standalone properties
+    var isEdit = Model.Address.Id > 0;
+    var actionName = isEdit ? "Edit" : "Create";
+    var isDelivery = Model.Address.AddressType == GamingStore.EL.Models.AddressType.Delivery;
+    var title = isEdit 
+        ? (isDelivery ? "Teslimat Adresini Düzenle" : "Fatura Adresini Düzenle")
+        : (isDelivery ? "Teslimat Adresi Ekle" : "Fatura Adresi Ekle");
+}
+
+@if (isStandalone)
+{
+    @:<div class="card shadow-sm border-0">
+    <div class="card-header text-white" style="background-color: #ff6000 !important;">
+        <h5 class="mb-0">@title</h5>
+    </div>
+    @:<div class="card-body">
+    @:<form method="post" action="@Url.Action(actionName, "Address")">
+    @Html.AntiForgeryToken()
+    
+    if (isEdit)
+    {
+        <input type="hidden" name="Address.Id" value="@Model.Address.Id" />
+        <input type="hidden" name="Address.IsDefault" value="@Model.Address.IsDefault.ToString().ToLower()" />
+    }
+    <input type="hidden" name="Address.AddressType" value="@Model.Address.AddressType" />
+}
+
+@if (!isCompact)
+{
+    <h6 class="text-secondary fw-bold mb-4">Kişisel Bilgileriniz</h6>
+}
+
+<div class="row g-3 @(isCompact ? string.Empty : "mb-5")">
+    <div class="col-md-6">
+        <label class="form-label small text-secondary">Ad</label>
+        <input class="form-control premium-input" name="Address.FirstName" value="@Model.Address.FirstName" placeholder="Adınız" />
+        <span asp-validation-for="Address.FirstName" class="text-danger small"></span>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label small text-secondary">Soyad</label>
+        <input class="form-control premium-input" name="Address.LastName" value="@Model.Address.LastName" placeholder="Soyadınız" />
+        <span asp-validation-for="Address.LastName" class="text-danger small"></span>
+    </div>
+    <div class="col-12">
+        <label class="form-label small text-secondary">Telefon</label>
+        <div class="input-group">
+            <span class="input-group-text bg-white border-end-0 rounded-start-pill ps-3" style="border-radius: @(isCompact ? "12px" : "10px") 0 0 @(isCompact ? "12px" : "10px") !important;">
+                +90
+            </span>
+            <input class="form-control premium-input rounded-start-0" name="Address.PhoneNumber" value="@Model.Address.PhoneNumber" placeholder="5XX XXX XX XX" style="border-radius: 0 @(isCompact ? "12px" : "10px") @(isCompact ? "12px" : "10px") 0 !important; border-left: none;" />
+        </div>
+        <span asp-validation-for="Address.PhoneNumber" class="text-danger small"></span>
+    </div>
+</div>
+
+@if (!isCompact)
+{
+    <h6 class="text-secondary fw-bold mb-4">Adres Bilgileriniz</h6>
+}
+
+<div class="mb-4">
+    <div class="row g-3">
+        <div class="col-6">
+            <input type="radio" class="address-category-radio" name="Address.Category" id="categoryHome"
+                   value="@((int)GamingStore.EL.Models.AddressCategory.Home)"
+                   @(Model.Address.Category == GamingStore.EL.Models.AddressCategory.Home ? "checked" : string.Empty) />
+            <label class="address-category-card @(isCompact ? "py-2" : string.Empty)" for="categoryHome">
+                <span class="@(isCompact ? "small" : "fw-semibold")">Ev</span>
+            </label>
+        </div>
+        <div class="col-6">
+            <input type="radio" class="address-category-radio" name="Address.Category" id="categoryWorkplace"
+                   value="@((int)GamingStore.EL.Models.AddressCategory.Workplace)"
+                   @(Model.Address.Category == GamingStore.EL.Models.AddressCategory.Workplace ? "checked" : string.Empty) />
+            <label class="address-category-card @(isCompact ? "py-2" : string.Empty)" for="categoryWorkplace">
+                <span class="@(isCompact ? "small" : "fw-semibold")">@(isCompact ? "İş" : "İş yeri")</span>
+            </label>
+        </div>
+    </div>
+</div>
+
+@if (showClosedDays)
+{
+    <div class="mb-4 p-3 bg-light rounded-3" id="closedDaysSection"
+         style="@(Model.Address.Category == GamingStore.EL.Models.AddressCategory.Workplace ? string.Empty : "display: none;")">
+        <label class="form-label small fw-bold text-secondary mb-2">İş yerinin kapalı günleri</label>
+        <div class="d-flex flex-wrap gap-2">
+            @foreach (var day in weekDays)
+            {
+                var isChecked = selectedDays.Contains(day) || (selectedDays.Length == 0 && defaultClosed.Contains(day) && Model.Address.Id == 0);
+                <div class="form-check">
+                    <input class="form-check-input closed-day-check" type="checkbox"
+                           value="@day" id="day_@day" @(isChecked ? "checked" : string.Empty) />
+                    <label class="form-check-label small" for="day_@day">@day</label>
+                </div>
+            }
+        </div>
+        <input type="hidden" name="Address.ClosedDays" id="closedDaysHidden" value="@Model.Address.ClosedDays" />
+    </div>
+}
+else
+{
+    <input type="hidden" name="Address.ClosedDays" id="closedDaysHidden" value="@Model.Address.ClosedDays" />
+}
+
+<div class="mb-4">
+    <div class="row g-3">
+        <div class="col-12">
+            <label class="form-label small text-secondary">Şehir</label>
+            <select class="form-select premium-input" name="Address.Province" id="provinceSelect">
+                <option value="">@(isCompact ? "İl Seçiniz" : "Seçiniz")</option>
+                @if (Model.Provinces != null)
+                {
+                    foreach (var province in Model.Provinces)
+                    {
+                        <option value="@province.Name" selected="@(Model.Address?.Province == province.Name)">@province.Name</option>
+                    }
+                }
+            </select>
+            <span asp-validation-for="Address.Province" class="text-danger small"></span>
+        </div>
+
+        <div class="col-12" id="districtContainer" style="display: none;">
+            <label class="form-label small text-secondary">İlçe</label>
+            <select class="form-select premium-input" name="Address.District" id="districtSelect" data-initial-value="@Model.Address?.District">
+                <option value="">İlçe seçin</option>
+            </select>
+            <span asp-validation-for="Address.District" class="text-danger small"></span>
+        </div>
+
+        <div class="col-12" id="neighborhoodContainer" style="display: none;">
+            <label class="form-label small text-secondary">Mahalle</label>
+            <select class="form-select premium-input" name="Address.Neighborhood" id="neighborhoodSelect" data-initial-value="@Model.Address?.Neighborhood">
+                <option value="">Mahalle seçin</option>
+            </select>
+            <span asp-validation-for="Address.Neighborhood" class="text-danger small"></span>
+        </div>
+
+        <div class="col-12">
+            @if (isCompact)
+            {
+                <div class="d-flex align-items-center mb-1">
+                    <label class="form-label small text-secondary mb-0">Adres Detayı</label>
+                    <span class="ms-2 badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25" style="font-size: 0.7rem;">İpucu: Açık adresinizi buraya yazın</span>
+                </div>
+            }
+            else
+            {
+                <label class="form-label small text-secondary">Adres Detayı</label>
+            }
+            <div>
+                <textarea class="form-control premium-input" name="Address.AddressDetail"
+                          placeholder="Sokak, bina no, daire no, site, iş yeri, kurum ismi vb. Tam adresi buraya yazınız." 
+                          rows="4" style="resize: none;">@Model.Address.AddressDetail</textarea>
+            </div>
+            <span asp-validation-for="Address.AddressDetail" class="text-danger small"></span>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <label class="form-label small text-secondary">Posta Kodu</label>
+        <input class="form-control premium-input" name="Address.PostalCode" value="@Model.Address.PostalCode" maxlength="5" placeholder="34000" />
+        <span asp-validation-for="Address.PostalCode" class="text-danger small"></span>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label small text-secondary">@(isCompact ? "Adres Başlığı" : "Bu adrese bir ad verin")</label>
+        <input class="form-control premium-input" name="Address.Title" value="@Model.Address.Title" placeholder="Örnek: Evim, İş yerim vb." />
+        <span asp-validation-for="Address.Title" class="text-danger small"></span>
+    </div>
+</div>
+
+@if (showSaveSwitch)
+{
+    <div class="col-12 mt-3">
+        <div class="form-check form-switch bg-light p-3 rounded-4 ms-0 ps-5 border">
+            <input class="form-check-input ms-n4" type="checkbox" id="saveNewAddress" name="SaveNewAddress" value="true" checked />
+            <label class="form-check-label fw-semibold small" for="saveNewAddress">Bu adresi sonraki alışverişlerim için kaydet</label>
+        </div>
+    </div>
+}
+
+@if (isStandalone)
+{
+    <div class="d-flex gap-3 mt-5">
+        <a asp-action="Index" asp-route-tab="@Model.Address.AddressType" class="premium-button-outline text-decoration-none text-center flex-fill">
+            Vazgeç
+        </a>
+        <button type="submit" class="premium-button-primary flex-fill">
+            Adresi Kaydet
+        </button>
+    </div>
+    @:</form>
+    @:</div>
+    @:</div>
+}
+
+<script>
+    (function() {
+        if (!window.addressProvinces || window.addressProvinces.length === 0) {
+            window.addressProvinces = @Html.Raw(Json.Serialize(Model.Provinces));
+        }
+
+        const categoryHome = document.getElementById('categoryHome');
+        const categoryWorkplace = document.getElementById('categoryWorkplace');
+        const closedDaysSection = document.getElementById('closedDaysSection');
+        const closedDaysHidden = document.getElementById('closedDaysHidden');
+
+        function updateClosedDaysVisibility() {
+            if (categoryWorkplace && categoryWorkplace.checked) {
+                if (closedDaysSection) closedDaysSection.style.display = 'block';
+            } else if (closedDaysSection) {
+                closedDaysSection.style.display = 'none';
+                if (closedDaysHidden) closedDaysHidden.value = '';
+            }
+        }
+
+        function updateClosedDaysHidden() {
+            const checked = Array.from(document.querySelectorAll('.closed-day-check:checked')).map(cb => cb.value);
+            if (closedDaysHidden) closedDaysHidden.value = checked.join(',');
+        }
+
+        function initializeAddressSelection() {
+            const provincesData = window.addressProvinces || [];
+            
+            const provinceSelect = document.getElementById('provinceSelect');
+            const districtSelect = document.getElementById('districtSelect');
+            const neighborhoodSelect = document.getElementById('neighborhoodSelect');
+            const districtContainer = document.getElementById('districtContainer');
+            const neighborhoodContainer = document.getElementById('neighborhoodContainer');
+
+            if (!provinceSelect || !districtSelect || !neighborhoodSelect) return;
+
+            provinceSelect.addEventListener('change', function () {
+                updateDistricts(this.value);
+                updateNeighborhoods('');
+            });
+
+            districtSelect.addEventListener('change', function () {
+                updateNeighborhoods(this.value);
+            });
+
+            function updateDistricts(selectedProvinceValue) {
+                districtSelect.innerHTML = '<option value="">İlçe seçin</option>';
+                neighborhoodSelect.innerHTML = '<option value="">Mahalle seçin</option>';
+                if (neighborhoodContainer) neighborhoodContainer.style.display = 'none';
+                
+                if (!selectedProvinceValue) {
+                    if (districtContainer) districtContainer.style.display = 'none';
+                    return;
+                }
+
+                const province = provincesData.find(p => p.name === selectedProvinceValue);
+                if (province && province.districts) {
+                    province.districts.forEach(district => {
+                        const option = document.createElement('option');
+                        option.value = district.name;
+                        option.textContent = district.name;
+                        districtSelect.appendChild(option);
+                    });
+                    if (districtContainer) districtContainer.style.display = 'block';
+                } else {
+                    if (districtContainer) districtContainer.style.display = 'none';
+                }
+            }
+
+            function updateNeighborhoods(selectedDistrictValue) {
+                neighborhoodSelect.innerHTML = '<option value="">Mahalle seçin</option>';
+
+                if (!selectedDistrictValue) {
+                    if (neighborhoodContainer) neighborhoodContainer.style.display = 'none';
+                    return;
+                }
+
+                const selectedProvinceValue = provinceSelect.value;
+                const selectedProvince = provincesData.find(p => p.name === selectedProvinceValue);
+                if (selectedProvince) {
+                    const selectedDistrict = selectedProvince.districts.find(d => d.name === selectedDistrictValue);
+                    if (selectedDistrict && selectedDistrict.neighborhoods) {
+                        selectedDistrict.neighborhoods.forEach(neighborhood => {
+                            const option = document.createElement('option');
+                            option.value = neighborhood;
+                            option.textContent = neighborhood;
+                            neighborhoodSelect.appendChild(option);
+                        });
+                        if (neighborhoodContainer) neighborhoodContainer.style.display = 'block';
+                    } else {
+                        if (neighborhoodContainer) neighborhoodContainer.style.display = 'none';
+                    }
+                } else {
+                    if (neighborhoodContainer) neighborhoodContainer.style.display = 'none';
+                }
+            }
+
+            const savedProvince = provinceSelect.value;
+            const savedDistrict = districtSelect.getAttribute('data-initial-value') || '';
+            const savedNeighborhood = neighborhoodSelect.getAttribute('data-initial-value') || '';
+
+            if (savedProvince) {
+                updateDistricts(savedProvince);
+                
+                setTimeout(() => {
+                    if (savedDistrict) {
+                        districtSelect.value = savedDistrict;
+                        updateNeighborhoods(savedDistrict);
+                        
+                        setTimeout(() => {
+                            if (savedNeighborhood) {
+                                neighborhoodSelect.value = savedNeighborhood;
+                            }
+                        }, 50);
+                    }
+                }, 50);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateClosedDaysVisibility();
+            updateClosedDaysHidden();
+            initializeAddressSelection();
+        });
+
+        if (categoryHome) categoryHome.addEventListener('change', updateClosedDaysVisibility);
+        if (categoryWorkplace) categoryWorkplace.addEventListener('change', updateClosedDaysVisibility);
+
+        document.querySelectorAll('.closed-day-check').forEach(cb => {
+            cb.addEventListener('change', updateClosedDaysHidden);
+        });
+    })();
+</script>

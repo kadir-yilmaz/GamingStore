@@ -1,0 +1,181 @@
+@model GamingStore.WebUI.ViewModels.Address.AddressListViewModel
+
+@{
+    ViewData["Title"] = "Adreslerim";
+
+    // Reusable address list helper to avoid partials
+    async Task RenderAddressList(List<GamingStore.EL.Models.Address> addresses, GamingStore.EL.Models.AddressType type, string emptyIcon, string emptyMessage)
+    {
+        <div class="alert alert-info mb-4">
+            <i class="fa-solid fa-circle-info me-1"></i>
+            @if (type == GamingStore.EL.Models.AddressType.Delivery)
+            {
+                <text>Bu sayfada yapacağınız adres değişiklikleri, daha önce vermiş olduğunuz siparişleri etkilemez.</text>
+            }
+            else
+            {
+                <text>Fatura için seçilen adres sadece bilgi amaçlıdır. Ürünlerimiz "Teslimat adresi" bölümünde seçtiğiniz adrese teslim edilir.</text>
+            }
+        </div>
+
+        <a asp-action="Create" asp-route-type="@type" 
+           class="premium-button-primary text-decoration-none d-inline-block mb-4">
+            <i class="fa-solid fa-plus me-1"></i> Yeni adres
+        </a>
+
+        @if (addresses.Any())
+        {
+            <div class="row">
+                @foreach (var address in addresses)
+                {
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100 border-2 @(address.IsDefault ? "" : "border-light") address-card-hover" 
+                             style="@(address.IsDefault ? "border-color: #ff6000 !important; background-color: #fff9f5;" : "")">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <i class="fa-solid @(address.Category == GamingStore.EL.Models.AddressCategory.Home ? "fa-house" : "fa-building") me-1" 
+                                           style="color: #ff6000;"></i>
+                                        <strong>@address.Title</strong>
+                                        @if (address.IsDefault)
+                                        {
+                                            <span class="text-warning ms-1" title="Varsayılan adres">
+                                                <i class="fa-solid fa-star"></i>
+                                            </span>
+                                        }
+                                    </div>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <a class="dropdown-item" asp-controller="Address" asp-action="Edit" asp-route-id="@address.Id">
+                                                    <i class="fa-solid fa-pen me-2"></i> Düzenle
+                                                </a>
+                                            </li>
+                                            @if (!address.IsDefault)
+                                            {
+                                                <li>
+                                                    <form asp-controller="Address" asp-action="SetDefault" method="post" class="d-inline">
+                                                        <input type="hidden" name="id" value="@address.Id" />
+                                                        <input type="hidden" name="type" value="@address.AddressType" />
+                                                        <button type="submit" class="dropdown-item">
+                                                            <i class="fa-regular fa-star me-2"></i> Varsayılan yap
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                            }
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <form asp-controller="Address" asp-action="Delete" method="post" 
+                                                      onsubmit="return confirm('Bu adresi silmek istediğinize emin misiniz?');">
+                                                    <input type="hidden" name="id" value="@address.Id" />
+                                                    <input type="hidden" name="tab" value="@address.AddressType" />
+                                                    <button type="submit" class="dropdown-item text-danger">
+                                                        <i class="fa-solid fa-trash me-2"></i> Sil
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                
+                                <p class="card-text text-muted small mb-1">
+                                    @address.FirstName @address.LastName
+                                </p>
+                                <p class="card-text small mb-1">
+                                    @address.Neighborhood, @address.District / @address.Province
+                                </p>
+                                <p class="card-text small text-truncate" title="@address.AddressDetail">
+                                    @address.AddressDetail
+                                </p>
+                                
+                                @if (address.Category == GamingStore.EL.Models.AddressCategory.Workplace && !string.IsNullOrEmpty(address.ClosedDays))
+                                {
+                                    <p class="card-text small text-muted mt-2">
+                                        <i class="fa-solid fa-calendar-xmark me-1"></i> Kapalı: @address.ClosedDays
+                                    </p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-center text-muted py-5">
+                <i class="fa-solid @emptyIcon fa-3x mb-3"></i>
+                <p>@emptyMessage</p>
+            </div>
+        }
+    }
+}
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            
+            <div class="card shadow-sm border-0">
+                <div class="card-header text-white" style="background-color: #ff6000 !important;">
+                    <h5 class="mb-0">Adreslerim</h5>
+                </div>
+                <div class="card-body">
+
+                    <partial name="_AlertMessages" />
+
+                    <!-- Tab Navigation -->
+                    <ul class="nav nav-tabs mb-4" id="addressTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link @(Model.ActiveTab == GamingStore.EL.Models.AddressType.Delivery ? "active" : "")" 
+                                    id="delivery-tab" data-bs-toggle="tab" data-bs-target="#delivery" 
+                                    type="button" role="tab">
+                                <i class="fa-solid fa-truck me-1"></i> Teslimat Adreslerim
+                                <span class="badge bg-secondary ms-1">@Model.DeliveryAddresses.Count</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link @(Model.ActiveTab == GamingStore.EL.Models.AddressType.Invoice ? "active" : "")" 
+                                    id="invoice-tab" data-bs-toggle="tab" data-bs-target="#invoice" 
+                                    type="button" role="tab">
+                                <i class="fa-solid fa-file-invoice me-1"></i> Fatura Adreslerim
+                                <span class="badge bg-secondary ms-1">@Model.InvoiceAddresses.Count</span>
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content" id="addressTabsContent">
+                        
+                        <!-- Teslimat Adresleri -->
+                        <div class="tab-pane fade @(Model.ActiveTab == GamingStore.EL.Models.AddressType.Delivery ? "show active" : "")" 
+                             id="delivery" role="tabpanel">
+                            @{ await RenderAddressList(Model.DeliveryAddresses, GamingStore.EL.Models.AddressType.Delivery, "fa-location-dot", "Henüz teslimat adresi eklememişsiniz."); }
+                        </div>
+
+                        <!-- Fatura Adresleri -->
+                        <div class="tab-pane fade @(Model.ActiveTab == GamingStore.EL.Models.AddressType.Invoice ? "show active" : "")" 
+                             id="invoice" role="tabpanel">
+                            @{ await RenderAddressList(Model.InvoiceAddresses, GamingStore.EL.Models.AddressType.Invoice, "fa-file-invoice", "Henüz fatura adresi eklememişsiniz."); }
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<style>
+    .address-card-hover { 
+        transition: all 0.2s; 
+        border-radius: 12px; 
+    }
+    .address-card-hover:hover { 
+        border-color: #adb5bd !important; 
+        transform: translateY(-2px); 
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+    }
+</style>

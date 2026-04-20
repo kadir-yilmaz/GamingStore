@@ -1,0 +1,154 @@
+@page
+@model GamingStore.WebUI.Pages.CartModel
+@{
+    var lines = Model.Cart?.Lines ?? Enumerable.Empty<CartLine>();
+    var hasItems = lines.Any();
+}
+
+<section class="cart-page py-5">
+    <div class="container">
+        <div class="cart-hero d-flex flex-column flex-lg-row justify-content-between align-items-lg-end gap-3 mb-4">
+            <div>
+                <span class="cart-kicker">SEPET</span>
+                <h1 class="cart-title mb-2">Alisveris Sepetin</h1>
+                <p class="cart-subtitle mb-0">
+                    @if (hasItems)
+                    {
+                        <span>Secili urunlerini kontrol et, miktarlari guncelle ve odemeye guvenle ilerle.</span>
+                    }
+                    else
+                    {
+                        <span>Sepetin su an bos. Kesfetmeye devam ederek favori urunlerini ekleyebilirsin.</span>
+                    }
+                </p>
+            </div>
+
+            @if (hasItems)
+            {
+                <div class="cart-badge">
+                    <span>@lines.Count()</span> urun
+                </div>
+            }
+        </div>
+
+        @if (!hasItems)
+        {
+            <div class="cart-empty card border-0 shadow-sm">
+                <div class="card-body text-center py-5 px-4">
+                    <div class="cart-empty-icon mx-auto mb-4">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                    </div>
+                    <h2 class="h3 fw-bold mb-3">Sepetinde henuz urun yok</h2>
+                    <p class="text-muted mx-auto mb-4 cart-empty-text">
+                        Yeni gelen urunlere goz atabilir, begenilerini sepete ekleyip alisverisine kaldigin yerden devam edebilirsin.
+                    </p>
+                    <a class="premium-button-primary text-decoration-none d-inline-flex align-items-center gap-2" href="@Model.ReturnUrl">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        Alisverise Don
+                    </a>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="row g-4 align-items-start">
+                <div class="col-xl-8">
+                    <div class="card border-0 shadow-sm cart-card">
+                        <div class="card-body p-0">
+                            @foreach (var line in lines)
+                            {
+                                var maxStock = line.Product.Stock;
+                                var subtotal = line.Product.Price * line.Quantity;
+
+                                <div class="cart-line">
+                                    <div class="cart-line-main">
+                                        <div class="cart-line-media">
+                                            <img src="@line.Product.ImageURL" alt="@line.Product.Name" />
+                                        </div>
+
+                                        <div class="cart-line-info">
+                                            <h3 class="cart-line-title">@line.Product.Name</h3>
+                                            <div class="cart-line-meta">
+                                                <span>Birim fiyat: @line.Product.Price.ToString("C2")</span>
+                                                <span>Stok: @maxStock</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="cart-line-actions">
+                                        <div class="cart-quantity-control">
+                                            <form method="post" asp-page-handler="Decrease" class="d-inline">
+                                                <input type="hidden" name="id" value="@line.Product.Id" />
+                                                <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+                                                <button type="submit" class="cart-qty-btn" aria-label="Miktari azalt">
+                                                    <i class="fa-solid fa-minus"></i>
+                                                </button>
+                                            </form>
+
+                                            <span class="cart-qty-value">@line.Quantity</span>
+
+                                            <form method="post" asp-page-handler="Increase" class="d-inline">
+                                                <input type="hidden" name="id" value="@line.Product.Id" />
+                                                <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+                                                <button type="submit" class="cart-qty-btn" aria-label="Miktari arttir" @(line.Quantity >= maxStock ? "disabled" : "")>
+                                                    <i class="fa-solid fa-plus"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+
+                                        <div class="cart-line-price">
+                                            <div class="cart-line-price-label">Ara toplam</div>
+                                            <div class="cart-line-price-value">@subtotal.ToString("C2")</div>
+                                        </div>
+
+                                        <form method="post" asp-page-handler="Remove" class="cart-remove-form">
+                                            <input type="hidden" name="id" value="@line.Product.Id" />
+                                            <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+                                            <button type="submit" class="cart-remove-btn">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                                Kaldir
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-4">
+                    <div class="card border-0 shadow-sm cart-summary-card">
+                        <div class="card-body p-4">
+                            <div class="cart-summary-head mb-4">
+                                <span class="cart-summary-label">Siparis Ozeti</span>
+                                <h2 class="cart-summary-total mb-0">@Model.Cart?.ComputeTotalValue().ToString("C2")</h2>
+                            </div>
+
+                            <div class="cart-summary-row">
+                                <span>Urunler</span>
+                                <span>@lines.Count()</span>
+                            </div>
+                            <div class="cart-summary-row">
+                                <span>Kargo</span>
+                                <span class="text-success fw-semibold">Bedava</span>
+                            </div>
+                            <div class="cart-summary-row total">
+                                <span>Toplam</span>
+                                <span>@Model.Cart?.ComputeTotalValue().ToString("C2")</span>
+                            </div>
+
+                            <div class="d-grid gap-3 mt-4">
+                                <a class="premium-button-primary text-decoration-none text-center" asp-action="Checkout" asp-controller="Order">
+                                    Checkout'a Git
+                                </a>
+                                <a class="premium-button-outline text-decoration-none text-center" href="@Model.ReturnUrl">
+                                    Alisverise Devam Et
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</section>

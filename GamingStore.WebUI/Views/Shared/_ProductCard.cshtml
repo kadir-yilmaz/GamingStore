@@ -1,0 +1,130 @@
+﻿@model Product
+
+<style>
+    .product-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+    }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            border-color: #007bff;
+        }
+
+    .product-image {
+        transition: transform 0.3s ease;
+        cursor: pointer;
+    }
+
+    .product-card:hover .product-image {
+        transform: scale(1.08);
+    }
+
+    .product-title {
+        font-weight: bold;
+        text-decoration: none;
+        color: #333;
+        transition: color 0.2s ease;
+        cursor: pointer;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        line-height: 1.4;
+        max-height: 4.2em;
+        min-height: 4.2em;
+    }
+
+    .product-card:hover .product-title {
+        color: #007bff;
+    }
+
+    .price-text {
+        font-size: 1.1em;
+        color: #28a745;
+        font-weight: 600;
+    }
+
+    .add-to-cart-btn {
+        transition: all 0.3s ease;
+        border: 2px solid #6c757d;
+        background-color: transparent;
+        color: #6c757d;
+        font-weight: 500;
+        /* Butonun tıklama olayını engellemesini sağlamak için z-index'i yüksek tutmaya gerek kalmadı. */
+    }
+
+        .add-to-cart-btn:hover {
+            background-color: #6c757d;
+            color: white;
+            transform: translateY(-1px);
+        }
+
+    .out-of-stock-badge {
+        font-size: 0.9em;
+        padding: 8px 12px;
+    }
+</style>
+
+<div class="col-sm-12 col-md-6 col-lg-3 my-2 d-flex justify-content-center">
+    <div class="card product-card" style="width: 18rem;" data-href="@Url.Action("Get", "Product", new { id = Model.Id })">
+
+        <img src="@Model?.ImageURL"
+             class="card-img-top product-image"
+             alt="@Model.Name"
+             style="height: 200px; object-fit: contain; background-color: #f8f9fa;">
+
+        <div class="card-body text-center">
+            <h6 class="product-title mb-3">
+                @Model.Name
+            </h6>
+
+            <div class="price-text mb-3">
+                @Model?.Price.ToString("C2")
+            </div>
+
+            @if (Model.Stock > 0)
+            {
+                <form asp-page="/cart" method="post" onsubmit="event.stopPropagation();">
+                    <input type="hidden" name="productId" value="@Model.Id" />
+                    <input type="hidden" name="returnUrl" value="@ViewContext.HttpContext.Request.PathAndQuery()" />
+                    <button type="submit" class="btn add-to-cart-btn w-100 d-flex justify-content-center align-items-center">
+                        <i class="fa fa-cart-plus me-2"></i> Sepete Ekle
+                    </button>
+                </form>
+            }
+            else
+            {
+                <span class="badge bg-danger w-100 out-of-stock-badge">Tükendi</span>
+            }
+        </div>
+    </div>
+</div>
+
+<script>
+    // Sayfa yüklendiğinde çalışacak kod
+    document.addEventListener('DOMContentLoaded', function() {
+        const productCards = document.querySelectorAll('.product-card');
+
+        productCards.forEach(card => {
+            // Her kart için tıklama olayı dinleyicisi ekle
+            card.addEventListener('click', function(event) {
+                // Tıklanan elementin "Sepete Ekle" butonu olup olmadığını kontrol et
+                const isButtonClick = event.target.closest('.add-to-cart-btn');
+
+                // Eğer tıklanan yer buton değilse, kartın yönlendirme işlemini yap
+                if (!isButtonClick) {
+                    const href = this.getAttribute('data-href');
+                    if (href) {
+                        window.location.href = href;
+                    }
+                }
+            });
+        });
+    });
+</script>

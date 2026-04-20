@@ -1,0 +1,50 @@
+﻿@* _LoginMenu.cshtml *@
+@if (User.Identity.IsAuthenticated)
+{
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle text-white" href="#" id="accountDropdown" role="button"
+           data-bs-toggle="dropdown" aria-expanded="false">
+            Hesabım
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountDropdown">
+            @* Kullanıcı email'i küçük gösteriliyor *@
+            <li>
+                <span class="dropdown-item-text text-muted small">@User.Identity.Name</span>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+
+            @* Admin seçeneği sadece rolü varsa *@
+            @if (User.IsInRole("Admin") || User.IsInRole("Editor"))
+            {
+                <li>
+                    <a class="dropdown-item" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
+                        Admin Paneli
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+            }
+
+            <li>
+                <a class="dropdown-item" asp-controller="Order" asp-action="Index">Siparişlerim</a>
+            </li>
+            <li>
+                <a class="dropdown-item" asp-controller="Account" asp-action="Profile">Profil</a>
+            </li>
+            <li>
+                <a class="dropdown-item" asp-controller="Address" asp-action="Index">Adreslerim</a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+                <a class="dropdown-item" asp-controller="Account" asp-action="Logout"
+                   asp-route-returnUrl="@Context.Request.PathAndQuery()">Logout</a>
+            </li>
+        </ul>
+    </li>
+}
+else
+{
+    <li class="nav-item">
+        <a class="nav-link text-white" aria-current="page" asp-controller="Account" asp-action="Login"
+           asp-route-returnUrl="@Context.Request.PathAndQuery()">Login</a>
+    </li>
+}
