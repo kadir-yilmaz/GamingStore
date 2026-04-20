@@ -1,4 +1,4 @@
-﻿using GamingStore.EL.Models.GamingStore.EL.Models;
+using GamingStore.EL.Models.GamingStore.EL.Models;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -28,6 +28,10 @@ namespace GamingStore.EL.Models
 
         public bool GiftWrap { get; set; }
         public bool Shipped { get; set; }
+        public OrderStatus Status { get; set; } = OrderStatus.Pending;
+        public string? CargoCompany { get; set; }
+        public string? TrackingNumber { get; set; }
+        public DateTime? DeliveryDate { get; set; }
         public DateTime OrderedAt { get; set; } = DateTime.Now;
     }
 }

@@ -1,6 +1,7 @@
 using GamingStore.BLL.Abstract;
 using GamingStore.EL.Settings;
 using MailKit.Net.Smtp;
+using MailKit.Security;
 using MimeKit;
 using Microsoft.Extensions.Options;
 using GamingStore.EL.Models;
@@ -78,7 +79,7 @@ namespace GamingStore.BLL.Concrete
             mimeMessage.Body = new BodyBuilder { TextBody = content }.ToMessageBody();
 
             using var client = new SmtpClient();
-            await client.ConnectAsync(_settings.SmtpServer, _settings.SmtpPort, false);
+            await client.ConnectAsync(_settings.SmtpServer, _settings.SmtpPort, SecureSocketOptions.StartTls);
             await client.AuthenticateAsync(_settings.SenderEmail, _settings.Password);
             await client.SendAsync(mimeMessage);
             await client.DisconnectAsync(true);

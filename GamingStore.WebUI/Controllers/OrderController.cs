@@ -212,7 +212,8 @@ namespace GamingStore.WebUI.Controllers
                 Product = l.Product
             }).ToList();
 
-            // Ödemeyi gerçekleştir
+            _orderService.SaveOrder(vm.Order);
+
             var payment = await _paymentService.MakePayment(
                 vm.Order,
                 deliveryAddress,
@@ -230,9 +231,6 @@ namespace GamingStore.WebUI.Controllers
                 {
                     _addressService.CreateAddress(deliveryAddress);
                 }
-
-                // Siparişi kaydet
-                _orderService.SaveOrder(vm.Order);
 
                 // Siparişi tamamla
                 await _orderService.CompleteAsync(vm.Order.Id);

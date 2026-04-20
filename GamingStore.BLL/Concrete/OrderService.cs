@@ -1,4 +1,4 @@
-﻿using GamingStore.BLL.Abstract;
+using GamingStore.BLL.Abstract;
 using GamingStore.DAL.Abstract;
 using GamingStore.EL.Models;
 
@@ -20,16 +20,17 @@ namespace GamingStore.BLL.Concrete
 
         public async Task CompleteAsync(int id)
         {
-            // 1️⃣ Siparişi tamamla
-            _orderRepository.Complete(id);
-
-            // 2️⃣ Siparişi çek (Include ile Lines ve Product)
+            // 1️⃣ Siparişi çek (Include ile Lines ve Product)
             var order = _orderRepository.GetOneOrder(id);
             if (order == null)
             {
                 Console.WriteLine($"HATA: Sipariş #{id} bulunamadı.");
                 return;
             }
+
+            // 2️⃣ Siparişi tamamla
+            order.Shipped = true;
+            order.Status = OrderStatus.Completed;
 
             Console.WriteLine($"Sipariş #{order.Id} için işlemler başlatıldı.");
             Console.WriteLine($"Toplam {order.Lines.Count} adet farklı ürün sipariş edilmiş.");
@@ -60,6 +61,39 @@ namespace GamingStore.BLL.Concrete
             _orderRepository.Save();
             _productRepository.Save();
             Console.WriteLine("Sipariş tamamlandı ve stok güncellendi.");
+        }
+
+        public async Task UpdateStatusAsync(int id, OrderStatus status)
+        {
+            var order = _orderRepository.GetOneOrder(id);
+            if (order != null)
+            {
+                order.Status = status;
+                _orderRepository.Save();
+            }
+        }
+
+        public async Task ShipOrderAsync(int id, string cargoCompany, string trackingNumber)
+        {
+            var order = _orderRepository.GetOneOrder(id);
+            if (order != null)
+            {
+                order.CargoCompany = cargoCompany;
+                order.TrackingNumber = trackingNumber;
+                order.Status = OrderStatus.Shipped;
+                order.Shipped = true;
+                _orderRepository.Save();
+            }
+        }
+
+        public async Task CancelOrderAsync(int id)
+        {
+            var order = _orderRepository.GetOneOrder(id);
+            if (order != null)
+            {
+                order.Status = OrderStatus.Failed;
+                _orderRepository.Save();
+            }
         }
 
         public Order? GetOneOrder(int id)
